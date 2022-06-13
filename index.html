@@ -30,18 +30,18 @@
 
 <script>
   console.log("inicio")
-  const STATE_RUNNING = 1;
-  const STATE_LOSING = 2;
+  const CORRIENDO = 1;
+  const REGRESANDO = 2;
   const colores = {
     serpiente: 'white',
     manzana: 'red'
   }
-  const TICK = 100;
-  const SQUARE_SIZE = 25;
-  const BOARD_WIDTH = 19;
-  const BOARD_HEIGHT = 19;
-  const GROW_SCALE = 3;
-  const DIRECTIONS_MAP = {
+  const TIEMPO = 100;
+  const TAMAÑO_DEL_BLOQUE = 25;
+  const BLOQUE_HORIZONTAL = 19;
+  const BLOQUE_VERTICAL = 19;
+  const RECOMPENSA = 3;
+  const MAPA_DE_DIRECCIONES = {
     'A': [-1,  0],
     'D': [ 1,  0],
     'S': [ 0,  1],
@@ -52,68 +52,68 @@
     'w': [ 0, -1],
   };
 
-  let state = {
+  let estado = {
     canvas: null,
     context: null,
-    snake: [{x: 0, y: 0}],
-    direction: {x: 1, y: 0},
-    direction_past: {x: 1, y: 0},
-    prey: {x: 0, y: 0},
-    growing: 0,
-    runState: STATE_RUNNING,
-    iterations: 0
+    serpiente: [{x: 0, y: 0}],
+    direccion: {x: 1, y: 0},
+    ultima_direccion: {x: 1, y: 0},
+    manzana: {x: 0, y: 0},
+    crecimiento: 0,
+    estado_serpiente: CORRIENDO,
+    repeticiones: 0
   };
   function sleep(milliseconds) {
-    const date = Date.now();
-    let currentDate = null;
+    const ahora = Date.now();
+    let despues = null;
     do {
-      currentDate = Date.now();
-    } while (currentDate - date < milliseconds);
+      despues = Date.now();
+    } while (despues - ahora < milliseconds);
   }
-  alert("antes")
-  sleep(1000)
-  alert("despues")
-  /*function randomXY(){ // No quiere funcionar
+  //alert("antes")
+  //sleep(1000)
+  //alert("despues")
+  /*function biramanzana(){ // No quiere funcionar
     var conflicto = false
-    state.prey = {
+    estado.manzana = {
       x: parseInt(Math.random() * BOARD_WIDTH),
       y: parseInt(Math.random() * BOARD_HEIGHT)
     };
-    for (let idx = 0; idx < state.snake.length; idx++){
-      if (state.prey.x !== state.snake[idx].x && state.prey.y !== state.snake[idx].y){
+    for (let i = 0; i < estado.serpiente.length; i++){
+      if (estado.manzana.x !== estado.serpiente[i].x && estado.manzana.y !== estado.serpiente[i].y){
         conflicto = true
       }
     }
     while (conflicto){
       conflicto = false
-      for (let idx = 0; idx < state.snake.length; idx++){
-        if (state.prey.x == state.snake[idx].x && state.prey.y === state.snake.y){
+      for (let i = 0; i < estado.serpiente.length; i++){
+        if (estado.manzana.x == estado.serpiente[i].x && estado.manzana.y === estado.serpiente[i].y){
           conflicto = true
           console.log("x")
         }
       }
       if (conflicto){
-        state.prey = {
+        estado.manzana = {
           x: parseInt(Math.random() * BOARD_WIDTH),
           y: parseInt(Math.random() * BOARD_HEIGHT)
         };
       }
 
     }
-    return state.prey
+    return estado.manzana
   }*/
-  function randomXY(){ // FUNCIONAAAAAAAAAAAAAAAAAAAAAA LO LOGRE
+  function biramanzana(){ // FUNCIONAAAAAAAAAAAAAAAAAAAAAA LO LOGRE
     let conflicto = false; // Esta función ubica la manzana en cualquier lugar del lienzo, verifica si quedó encima (o debajo, en este caso; dependiendo de cual se dibuje primero) y si es verdad, la vuelve a reubicar hasta que no lo sea. (La variable conflicto es true si está encima, y false si no lo está)
     coordenadas = {
-      x: parseInt(Math.random() * BOARD_WIDTH),
-      y: parseInt(Math.random() * BOARD_HEIGHT)
+      x: parseInt(Math.random() * BLOQUE_HORIZONTAL),
+      y: parseInt(Math.random() * BLOQUE_VERTICAL)
     };
-    for (let i = 0; i < state.snake.length; i++){
-      if (state.snake[i].x === coordenadas.x
-        && state.snake[i].y === coordenadas.y){
+    for (let i = 0; i < estado.serpiente.length; i++){
+      if (estado.serpiente[i].x === coordenadas.x
+        && estado.serpiente[i].y === coordenadas.y){
           conflicto = true;
       } else {
-        const bloque = i+1
+        //const bloque = i+1
         //console.log("No está encima del bloque "+bloque);
       }
     }
@@ -121,16 +121,16 @@
       console.log("No pasó la primera prueba");
       while (conflicto){
         coordenadas = {
-          x: parseInt(Math.random() * BOARD_WIDTH),
-          y: parseInt(Math.random() * BOARD_HEIGHT)
+          x: parseInt(Math.random() * BLOQUE_HORIZONTAL),
+          y: parseInt(Math.random() * BLOQUE_VERTICAL)
         };
         conflicto = false;
-        for (let i = 0; i < state.snake.length; i++){
-          if (state.snake[i].x === coordenadas.x
-            && state.snake[i].y === coordenadas.y){
+        for (let i = 0; i < estado.serpiente.length; i++){
+          if (estado.serpiente[i].x === coordenadas.x
+            && estado.serpiente[i].y === coordenadas.y){
             conflicto = true;
           } else {
-            const bloque = i+1
+            //const bloque = i+1
             //console.log("No está encima del bloque "+bloque);
           }
         }
@@ -139,96 +139,93 @@
     } else {
       console.log("Pasó la primera prueba");
     }
-    state.prey.x = coordenadas.x;
-    state.prey.y = coordenadas.y;
+    estado.manzana.x = coordenadas.x;
+    estado.manzana.y = coordenadas.y;
   }
 
-  function tick() {
-    const head = state.snake[0];
-    const dx = state.direction.x;
-    const dy = state.direction.y;
-    const highestIndex = state.snake.length - 1;
-    let tail = {};
-    let interval = TICK;
+  function sig() {
+    const cabeza = estado.serpiente[0];
+    const dirX = estado.direccion.x;
+    const dirY = estado.direccion.y;
+    const Indice_de_la_punta = estado.serpiente.length - 1;
+    let fin = {};
+    let intervalo = TIEMPO;
 
-    Object.assign(tail,
-      state.snake[state.snake.length - 1]);
+    Object.assign(fin,
+      estado.serpiente[estado.serpiente.length - 1]);
 
-    let didScore = (
-      head.x === state.prey.x
-      && head.y === state.prey.y
+    let comeManzana = (
+      cabeza.x === estado.manzana.x
+      && cabeza.y === estado.manzana.y
     );
 
-    if (state.runState === STATE_RUNNING) {
-      for (let idx = highestIndex; idx > -1; idx--) {
-        const sq = state.snake[idx];
+    if (estado.estado_serpiente === CORRIENDO) {
+      for (let i = Indice_de_la_punta; i > -1; i--) {
+        const bloque = estado.serpiente[i];
 
-        if (idx === 0) {
-          sq.x += dx;
-          sq.y += dy;
+        if (i === 0) {
+          bloque.x += dirX;
+          bloque.y += dirY;
         } else {
-          sq.x = state.snake[idx - 1].x;
-          sq.y = state.snake[idx - 1].y;
+          bloque.x = estado.serpiente[i - 1].x;
+          bloque.y = estado.serpiente[i - 1].y;
         }
       }
-    } else if (state.runState === STATE_LOSING) {
-      interval = 10;
+    } else if (estado.estado_serpiente === REGRESANDO) {
+      intervalo = 10;
 
-      if (state.snake.length > 0) {
-        if (state.snake.length === 1){
+      if (estado.serpiente.length > 0) {
+        if (estado.serpiente.length === 1){
           sleep(500)
         }
-        state.snake.splice(0, 1);
+        estado.serpiente.splice(0, 1);
       }
 
-      if (state.snake.length === 0) {
-        state.runState = STATE_RUNNING;
-        state.snake = [{x: 0, y: 0}],
-        state.direction = {x:1,y:0}
-        state.prey = {
-          x: parseInt(Math.random() * BOARD_WIDTH),
-          y: parseInt(Math.random() * BOARD_HEIGHT)
-        };;
-        state.iterations = 0
-        state.growing = 4;
+      if (estado.serpiente.length === 0) {
+        estado.estado_serpiente = CORRIENDO;
+        estado.serpiente = [{x: 0, y: 0}],
+        estado.direccion = {x:1,y:0}
+        biramanzana();
+        estado.repeticiones = 0
+        estado.crecimiento = 4;
       }
     }
 
-    if (detectCollision()) {
-      state.runState = STATE_LOSING;
-      state.growing = 0;
+    if (colisiona()) {
+      estado.estado_serpiente = REGRESANDO;
+      estado.crecimiento = 0;
     }
 
-    if (didScore) {
-      state.growing += GROW_SCALE;
-      randomXY();
+    if (comeManzana) {
+      estado.crecimiento += RECOMPENSA;
+      biramanzana();
     }
 
-    if (state.growing > 0 && state.iterations > 0) {
-      state.snake.push(tail);
-      state.growing -= 1;
+    if (estado.crecimiento > 0 && estado.repeticiones > 0) {
+      estado.serpiente.push(fin);
+      estado.crecimiento -= 1;
     }
-    state.iterations++
+    estado.repeticiones++
 
-    requestAnimationFrame(draw);
-    setTimeout(tick, interval);
+    requestAnimationFrame(fotograma);
+    setTimeout(sig, intervalo);
   }
 
-  function detectCollision() {
-    const head = state.snake[0];
+  function colisiona() {
+    const cabeza = estado.serpiente[0];
 
-    if (head.x < 0
-      || head.x >= BOARD_WIDTH
-      || head.y >= BOARD_HEIGHT
-      || head.y < 0
+    if (cabeza.x < 0
+      || cabeza.x >= BLOQUE_HORIZONTAL
+      || cabeza.y >= BLOQUE_VERTICAL
+      || cabeza.y < 0
     ) {
       return true;
     }
 
-    for (var idx = 1; idx < state.snake.length; idx++) {
-      const sq = state.snake[idx];
+    for (var i = 1; i < estado.serpiente.length; i++) {
+      const bloque = estado.serpiente[i];
 
-      if (sq.x === head.x && sq.y === head.y) {
+      if (bloque.x === cabeza.x && bloque.y === cabeza.y) {
         return true;
       }
     }
@@ -236,49 +233,49 @@
     return false;
   }
 
-  function drawPixel(color, x, y) {
-    state.context.fillStyle = color;
-    state.context.fillRect(
-      x * SQUARE_SIZE,
-      y * SQUARE_SIZE,
-      SQUARE_SIZE,
-      SQUARE_SIZE
+  function pixel(color, x, y) {
+    estado.context.fillStyle = color;
+    estado.context.fillRect(
+      x * TAMAÑO_DEL_BLOQUE,
+      y * TAMAÑO_DEL_BLOQUE,
+      TAMAÑO_DEL_BLOQUE,
+      TAMAÑO_DEL_BLOQUE
     );
   }
 
-  function draw() {
-    state.context.clearRect(0, 0, 500, 500);
-    const {x, y} = state.prey;
-    drawPixel(colores.manzana, x, y);
-    for (var idx = 0; idx < state.snake.length; idx++) {
-      const {x, y} = state.snake[idx];
-      drawPixel(colores.serpiente, x, y);
+  function fotograma() {
+    estado.context.clearRect(0, 0, 500, 500);
+    const {x, y} = estado.manzana;
+    pixel(colores.manzana, x, y);
+    for (var idx = 0; idx < estado.serpiente.length; idx++) {
+      const {x, y} = estado.serpiente[idx];
+      pixel(colores.serpiente, x, y);
     }
-    state.direction_past.x = "e"
-    state.direction_past.y = "e"
+    estado.ultima_direccion.x = "aiejriajeiria"
+    estado.ultima_direccion.y = "arelralerlaer"
   }
 
   window.onload = function() {
-    state.canvas = document.querySelector('canvas');
-    state.context = state.canvas.getContext('2d');
+    estado.canvas = document.querySelector('canvas');
+    estado.context = estado.canvas.getContext('2d');
 
     window.onkeydown = function(e) {
-      const direction = DIRECTIONS_MAP[e.key];
+      const direccion = MAPA_DE_DIRECCIONES[e.key];
 
-      if (direction) {
-        const [x, y] = direction;
-        if (-x !== state.direction.x && -y !== state.direction.y
-        && -x !== state.direction_past.x && -y !== state.direction.y)
+      if (direccion) {
+        const [x, y] = direccion;
+        if (-x !== estado.direccion.x && -y !== estado.direccion.y
+        && -x !== estado.ultima_direccion.x && -y !== estado.direccion.y)
         {
-          state.direction_past.x = state.direction.x
-          state.direction_past.y = state.direction.y
-          state.direction.x = x;
-          state.direction.y = y;
+          estado.ultima_direccion.x = estado.direccion.x
+          estado.ultima_direccion.y = estado.direccion.y
+          estado.direccion.x = x;
+          estado.direccion.y = y;
         }
       }
     }
 
-    tick();
+    sig();
   };
 </script>
 
