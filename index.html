@@ -1,10 +1,10 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
   <title>Snake</title>
   <style>
     body {
-      background: #444;
+      background: white;
       text-align: center;
       margin: 64px 0 0 0;
       /*background: black;*/
@@ -26,7 +26,8 @@
 </head>
 <body>
 
-<canvas width="500" height="500"></canvas>
+<canvas width="400" height="400"></canvas>
+<h1 id="titulo">Snake</h1>
 
 <script>
   console.log("inicio")
@@ -37,9 +38,9 @@
     manzana: 'red'
   }
   const TIEMPO = 100;
-  const TAMAÑO_DEL_BLOQUE = 25;
-  const BLOQUE_HORIZONTAL = 19;
-  const BLOQUE_VERTICAL = 19;
+  const TAMANYO_DEL_BLOQUE = 20;
+  const BLOQUE_HORIZONTAL = 20;
+  const BLOQUE_VERTICAL = 20;
   const RECOMPENSA = 3;
   const MAPA_DE_DIRECCIONES = {
     'A': [-1,  0],
@@ -50,12 +51,16 @@
     'd': [ 1,  0],
     's': [ 0,  1],
     'w': [ 0, -1],
+    'ArrowLeft': [-1, 0],
+    'ArrowRight': [ 1, 0],
+    'ArrowDown': [ 0, 1],
+    'ArrowUp': [ 0, -1]
   };
 
   let estado = {
     canvas: null,
     context: null,
-    serpiente: [{x: 0, y: 0}],
+    serpiente: [{x: 0, y: 0}], 
     direccion: {x: 1, y: 0},
     ultima_direccion: {x: 1, y: 0},
     manzana: {x: 0, y: 0},
@@ -70,37 +75,44 @@
       despues = Date.now();
     } while (despues - ahora < milliseconds);
   }
-  //alert("antes")
-  //sleep(1000)
-  //alert("despues")
-  /*function biramanzana(){ // No quiere funcionar
+  function init(){
+    document.querySelector('canvas').getContext('2d').clearRect(0, 0, 500, 500);
+  }
+  /*requestAnimationFrame(init)
+  sleep(1000)
+  document.getElementById("titulo").innerHTML = "Snake"
+  sleep(1000)
+  document.getElementById("titulo").innerHTML = "Lleva la serpiente hacia la manzana"
+  sleep(1000)
+  */
+  /*function randomXY(){ // No quiere funcionar
     var conflicto = false
-    estado.manzana = {
+    state.prey = {
       x: parseInt(Math.random() * BOARD_WIDTH),
       y: parseInt(Math.random() * BOARD_HEIGHT)
     };
-    for (let i = 0; i < estado.serpiente.length; i++){
-      if (estado.manzana.x !== estado.serpiente[i].x && estado.manzana.y !== estado.serpiente[i].y){
+    for (let idx = 0; idx < state.snake.length; idx++){
+      if (state.prey.x !== state.snake[idx].x && state.prey.y !== state.snake[idx].y){
         conflicto = true
       }
     }
     while (conflicto){
       conflicto = false
-      for (let i = 0; i < estado.serpiente.length; i++){
-        if (estado.manzana.x == estado.serpiente[i].x && estado.manzana.y === estado.serpiente[i].y){
+      for (let idx = 0; idx < state.snake.length; idx++){
+        if (state.prey.x == state.snake[idx].x && state.prey.y === state.snake.y){
           conflicto = true
           console.log("x")
         }
       }
       if (conflicto){
-        estado.manzana = {
+        state.prey = {
           x: parseInt(Math.random() * BOARD_WIDTH),
           y: parseInt(Math.random() * BOARD_HEIGHT)
         };
       }
 
     }
-    return estado.manzana
+    return state.prey
   }*/
   function biramanzana(){ // FUNCIONAAAAAAAAAAAAAAAAAAAAAA LO LOGRE
     let conflicto = false; // Esta función ubica la manzana en cualquier lugar del lienzo, verifica si quedó encima (o debajo, en este caso; dependiendo de cual se dibuje primero) y si es verdad, la vuelve a reubicar hasta que no lo sea. (La variable conflicto es true si está encima, y false si no lo está)
@@ -236,10 +248,10 @@
   function pixel(color, x, y) {
     estado.context.fillStyle = color;
     estado.context.fillRect(
-      x * TAMAÑO_DEL_BLOQUE,
-      y * TAMAÑO_DEL_BLOQUE,
-      TAMAÑO_DEL_BLOQUE,
-      TAMAÑO_DEL_BLOQUE
+      x * TAMANYO_DEL_BLOQUE,
+      y * TAMANYO_DEL_BLOQUE,
+      TAMANYO_DEL_BLOQUE,
+      TAMANYO_DEL_BLOQUE
     );
   }
 
@@ -251,17 +263,15 @@
       const {x, y} = estado.serpiente[idx];
       pixel(colores.serpiente, x, y);
     }
-    estado.ultima_direccion.x = "aiejriajeiria"
-    estado.ultima_direccion.y = "arelralerlaer"
+    estado.ultima_direccion.x = false
+    estado.ultima_direccion.y = false
   }
-
   window.onload = function() {
     estado.canvas = document.querySelector('canvas');
     estado.context = estado.canvas.getContext('2d');
 
-    window.onkeydown = function(e) {
-      const direccion = MAPA_DE_DIRECCIONES[e.key];
-
+    window.onkeydown = function() {
+      var direccion = MAPA_DE_DIRECCIONES[event.key];
       if (direccion) {
         const [x, y] = direccion;
         if (-x !== estado.direccion.x && -y !== estado.direccion.y
@@ -273,6 +283,10 @@
           estado.direccion.y = y;
         }
       }
+      event.keyCode = 0;
+      event.returnValue = false;
+      event.cancelBubble = true;
+      return false;
     }
 
     sig();
