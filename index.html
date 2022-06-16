@@ -2,6 +2,9 @@
 <html>
 <head>
   <title>Snake</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&display=swap" rel="stylesheet">
   <style>
     body {
       background: white;
@@ -13,6 +16,7 @@
         rgba(0, 102, 204, 1.0) 0%,
         rgba(125, 60, 152, 1.0) 100%
       );*/
+      font-family: 'Montserrat', sans-serif;
     }
     canvas {
       background: black;
@@ -25,11 +29,11 @@
   </style>
 </head>
 <body>
-
 <canvas width="400" height="400"></canvas>
-<h1 id="titulo">Snake</h1>
-
+<h1 id="titulo">Lleva la serpiente hacia la manzana</h1>
+<h2 id="subtitulo"></h2>
 <script>
+  const sleept = ms => new Promise(r => setTimeout(r, ms));
   console.log("inicio")
   const CORRIENDO = 1;
   const REGRESANDO = 2;
@@ -37,7 +41,7 @@
     serpiente: 'white',
     manzana: 'red'
   }
-  const TIEMPO = 100;
+  var TIEMPO = 100;
   const TAMANYO_DEL_BLOQUE = 20;
   const BLOQUE_HORIZONTAL = 20;
   const BLOQUE_VERTICAL = 20;
@@ -56,17 +60,21 @@
     'ArrowDown': [ 0, 1],
     'ArrowUp': [ 0, -1]
   };
-
   let estado = {
     canvas: null,
     context: null,
-    serpiente: [{x: 0, y: 0}], 
+    serpiente: [{x: -1, y: 0}],
     direccion: {x: 1, y: 0},
     ultima_direccion: {x: 1, y: 0},
     manzana: {x: 0, y: 0},
     crecimiento: 0,
     estado_serpiente: CORRIENDO,
-    repeticiones: 0
+    repeticiones: 0,
+    muertes: 0,
+    puntaje: -1,
+    movio: false,
+    maximo: 0,
+    avisos: 0
   };
   function sleep(milliseconds) {
     const ahora = Date.now();
@@ -75,47 +83,13 @@
       despues = Date.now();
     } while (despues - ahora < milliseconds);
   }
-  function init(){
-    document.querySelector('canvas').getContext('2d').clearRect(0, 0, 500, 500);
+  async function init(){
+    await sleept(800);
+    document.getElementById("subtitulo").innerHTML = "Usa las teclas de dirección o WASD para moverla"
   }
-  /*requestAnimationFrame(init)
-  sleep(1000)
-  document.getElementById("titulo").innerHTML = "Snake"
-  sleep(1000)
-  document.getElementById("titulo").innerHTML = "Lleva la serpiente hacia la manzana"
-  sleep(1000)
-  */
-  /*function randomXY(){ // No quiere funcionar
-    var conflicto = false
-    state.prey = {
-      x: parseInt(Math.random() * BOARD_WIDTH),
-      y: parseInt(Math.random() * BOARD_HEIGHT)
-    };
-    for (let idx = 0; idx < state.snake.length; idx++){
-      if (state.prey.x !== state.snake[idx].x && state.prey.y !== state.snake[idx].y){
-        conflicto = true
-      }
-    }
-    while (conflicto){
-      conflicto = false
-      for (let idx = 0; idx < state.snake.length; idx++){
-        if (state.prey.x == state.snake[idx].x && state.prey.y === state.snake.y){
-          conflicto = true
-          console.log("x")
-        }
-      }
-      if (conflicto){
-        state.prey = {
-          x: parseInt(Math.random() * BOARD_WIDTH),
-          y: parseInt(Math.random() * BOARD_HEIGHT)
-        };
-      }
-
-    }
-    return state.prey
-  }*/
-  function biramanzana(){ // FUNCIONAAAAAAAAAAAAAAAAAAAAAA LO LOGRE
-    let conflicto = false; // Esta función ubica la manzana en cualquier lugar del lienzo, verifica si quedó encima (o debajo, en este caso; dependiendo de cual se dibuje primero) y si es verdad, la vuelve a reubicar hasta que no lo sea. (La variable conflicto es true si está encima, y false si no lo está)
+  init()
+  function biramanzana(){
+    let conflicto = false;
     coordenadas = {
       x: parseInt(Math.random() * BLOQUE_HORIZONTAL),
       y: parseInt(Math.random() * BLOQUE_VERTICAL)
@@ -154,7 +128,6 @@
     estado.manzana.x = coordenadas.x;
     estado.manzana.y = coordenadas.y;
   }
-
   function sig() {
     const cabeza = estado.serpiente[0];
     const dirX = estado.direccion.x;
@@ -162,15 +135,12 @@
     const Indice_de_la_punta = estado.serpiente.length - 1;
     let fin = {};
     let intervalo = TIEMPO;
-
     Object.assign(fin,
       estado.serpiente[estado.serpiente.length - 1]);
-
     let comeManzana = (
       cabeza.x === estado.manzana.x
       && cabeza.y === estado.manzana.y
     );
-
     if (estado.estado_serpiente === CORRIENDO) {
       for (let i = Indice_de_la_punta; i > -1; i--) {
         const bloque = estado.serpiente[i];
@@ -185,14 +155,16 @@
       }
     } else if (estado.estado_serpiente === REGRESANDO) {
       intervalo = 10;
-
       if (estado.serpiente.length > 0) {
         if (estado.serpiente.length === 1){
+          requestAnimationFrame(fotograma)
           sleep(500)
+          if (estado.movio){
+            document.getElementById("titulo").innerHTML = 0
+          }
         }
         estado.serpiente.splice(0, 1);
       }
-
       if (estado.serpiente.length === 0) {
         estado.estado_serpiente = CORRIENDO;
         estado.serpiente = [{x: 0, y: 0}],
@@ -202,30 +174,35 @@
         estado.crecimiento = 4;
       }
     }
-
     if (colisiona()) {
       estado.estado_serpiente = REGRESANDO;
       estado.crecimiento = 0;
+      estado.puntaje = 0;
+      estado.muertes++
+      document.getElementById("subtitulo").innerHTML = "Mejor puntaje: "+estado.maximo
+      TIEMPO = TIEMPO//-TIEMPO/10
     }
-
     if (comeManzana) {
       estado.crecimiento += RECOMPENSA;
       biramanzana();
+      estado.puntaje++
+      if (estado.movio){
+        document.getElementById("titulo").innerHTML = estado.puntaje
+      }
+      if (estado.puntaje > estado.maximo){
+        estado.maximo = estado.puntaje
+      }
     }
-
     if (estado.crecimiento > 0 && estado.repeticiones > 0) {
       estado.serpiente.push(fin);
       estado.crecimiento -= 1;
     }
     estado.repeticiones++
-
     requestAnimationFrame(fotograma);
     setTimeout(sig, intervalo);
   }
-
   function colisiona() {
     const cabeza = estado.serpiente[0];
-
     if (cabeza.x < 0
       || cabeza.x >= BLOQUE_HORIZONTAL
       || cabeza.y >= BLOQUE_VERTICAL
@@ -233,7 +210,6 @@
     ) {
       return true;
     }
-
     for (var i = 1; i < estado.serpiente.length; i++) {
       const bloque = estado.serpiente[i];
 
@@ -241,10 +217,8 @@
         return true;
       }
     }
-
     return false;
   }
-
   function pixel(color, x, y) {
     estado.context.fillStyle = color;
     estado.context.fillRect(
@@ -254,7 +228,6 @@
       TAMANYO_DEL_BLOQUE
     );
   }
-
   function fotograma() {
     estado.context.clearRect(0, 0, 500, 500);
     const {x, y} = estado.manzana;
@@ -275,12 +248,20 @@
       if (direccion) {
         const [x, y] = direccion;
         if (-x !== estado.direccion.x && -y !== estado.direccion.y
-        && -x !== estado.ultima_direccion.x && -y !== estado.direccion.y)
+        && -x !== estado.ultima_direccion.x && -y !== estado.ultima_direccion.y)
         {
+          if (estado.muertes <= 0){
+            document.getElementById("subtitulo").innerHTML = "";
+            estado.movio = true;
+          }
           estado.ultima_direccion.x = estado.direccion.x
           estado.ultima_direccion.y = estado.direccion.y
           estado.direccion.x = x;
           estado.direccion.y = y;
+        }
+        if (-x === estado.ultima_direccion.x && -y === estado.ultima_direccion.y && estado.avisos === 0){
+          alert("No des la vuelta demasiado rápido")
+          estado.avisos++
         }
       }
       event.keyCode = 0;
@@ -288,10 +269,8 @@
       event.cancelBubble = true;
       return false;
     }
-
     sig();
   };
 </script>
-
 </body>
 </html>
